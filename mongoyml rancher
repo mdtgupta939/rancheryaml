@@ -1,0 +1,172 @@
+---
+  useStatefulSet: true
+  persistence: 
+    accessMode: "ReadWriteMany"
+    size: "30Gi"
+    storageClass: "local-path"
+  replicaSet: 
+    enabled: true
+    replicas: 
+      arbiter: "0"
+      secondary: "0"
+  service: 
+    nodePort: "32763"
+    type: "NodePort"
+  mongodbRootPassword: "Ab_12cpstr41"
+
+
+
+---
+  useStatefulSet: true
+  persistence: 
+    accessMode: "ReadWriteMany"
+    size: "50Gi"
+    storageClass: "default"
+  replicaSet: 
+    enabled: true
+    replicas: 
+      arbiter: "0"
+      secondary: "0"
+  service: 
+    nodePort: "32762"
+    type: "NodePort"
+  mongodbRootPassword: "7EKxTyyQ20zoNN_erP"
+  resources:
+    limits:
+      cpu: "10"
+      memory: "20Gi"
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+
+
+
+
+
+
+
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: es-vcs
+  name: es-vcs
+  namespace: es
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9200
+  selector:
+    app: es-vcs
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: es-vcs
+  labels:
+    app: es-vcs
+
+spec:
+  serviceName: es-vcs
+  updateStrategy:
+    type: RollingUpdate
+  # NOTE: This is number of nodes that we want to run
+  # you may update this
+  replicas: 1
+  selector:
+    matchLabels:
+      app: es-vcs
+  template:
+    metadata:
+      labels:
+        app: es-vcs
+    spec:
+      terminationGracePeriodSeconds: 300
+      initContainers:
+      # NOTE:
+      # This is to fix the permission on the volume
+      # By default elasticsearch container is not run as
+      # non root user.
+      # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+      - name: fix-the-volume-permission
+        image: busybox
+        command:
+        - sh
+        - -c
+        - chown -R 1000:1000 /usr/share/elasticsearch/data
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+      # NOTE:
+      # To increase the default vm.max_map_count to 262144
+      # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode
+      - name: increase-the-vm-max-map-count
+        image: busybox
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      # To increase the ulimit
+      # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+      - name: increase-the-ulimit
+        image: busybox
+        command:
+        - sh
+        - -c
+        - ulimit -n 65536
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:5.5.3
+        
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: tcp
+        # NOTE: you can increase this resources
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "500m"
+          limits:
+            cpu: "1000m"
+            memory: "4Gi"
+        env:
+          # NOTE: the cluster name; update this
+          # - name: cluster.name
+          #   value: elasticsearch-cluster
+          - name: ES_JAVA_OPTS
+            value: -Xmx2g -Xms2g
+          - name: "xpack.security.enabled"
+            value: "false"
+            
+          - name: node.name
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+           
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    
+    spec:
+      storageClassName: "local-path"
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
