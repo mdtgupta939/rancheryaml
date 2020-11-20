@@ -1,0 +1,43 @@
+#without resources
+---
+  useStatefulSet: true
+  persistence: 
+    accessMode: "ReadWriteMany"
+    size: "30Gi"
+    storageClass: "local-path"
+  replicaSet: 
+    enabled: true
+    replicas: 
+      arbiter: "0"
+      secondary: "0"
+  service: 
+    nodePort: "32763"
+    type: "NodePort"
+  mongodbRootPassword: "Ab_12cpstr41"
+
+
+#with resources
+---
+  useStatefulSet: true
+  persistence: 
+    accessMode: "ReadWriteMany"
+    size: "50Gi"
+    storageClass: "default"
+  replicaSet: 
+    enabled: true
+    replicas: 
+      arbiter: "0"
+      secondary: "0"
+  service: 
+    nodePort: "32762"
+    type: "NodePort"
+  mongodbRootPassword: "7EKxTyyQ20zoNN_erP"
+  resources:
+    limits:
+      cpu: "10"
+      memory: "20Gi"
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+
+#for replicas mark arbiter and sec as 1
