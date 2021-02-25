@@ -1,0 +1,34 @@
+---
+  useStatefulSet: true
+  defaultImage: false
+  image: 
+    repository: "bitnami/mongodb"
+    tag: "3.6"
+  volumePermissions: 
+    image: 
+      repository: "bitnami/mongodb"
+      tag: "3.6"
+  metrics: 
+    image: 
+      repository: "ranchercharts/bitnami-mongodb-exporter"
+      tag: "0.8.0-debian-9-r4"
+    enabled: false
+    serviceMonitor: 
+      enabled: false
+  usePassword: true
+  mongodbRootPassword: "W85_qnyXop$SdfB4u2"
+  replicaSet: 
+    enabled: true
+    replicas: 
+      arbiter: "0"
+      secondary: "0"
+  service: 
+    type: "NodePort"
+    nodePort: "30042"
+  resources:
+    limits:
+      memory: "5Gi"
+    requests:
+      memory: "5Gi"
+  persistence: 
+    size: "30Gi"
